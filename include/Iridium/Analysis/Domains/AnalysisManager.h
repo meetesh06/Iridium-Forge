@@ -22,12 +22,12 @@ public:
     // Invalidation
     // ========================
 
-    void invalidate(BBContainerView &bb)
-    {
-        auto it = cacheMap.find(&bb);
-        if (it != cacheMap.end())
-            it->second.clear();
-    }
+    // void invalidate(BBContainerView &bb)
+    // {
+    //     auto it = cacheMap.find(&bb);
+    //     if (it != cacheMap.end())
+    //         it->second.clear();
+    // }
 
     void clearAll()
     {
