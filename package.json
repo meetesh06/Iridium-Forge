@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "incdev": "cmake-js build --debug && echo 'module.export = require(\"./build/Debug/iridiumForge.node\");' > forge.cjs",
+    "incdev": "cmake-js build --debug && echo 'module.exports = require(\"./build/Debug/iridiumForge.node\");' > forge.cjs",
     "build": "cmake-js clean && cmake-js build && echo 'module.exports = require(\"./build/Release/iridiumForge.node\");' > forge.cjs",
     "dev": "cmake-js clean && cmake-js build --debug  && echo 'module.exports = require(\"./build/Debug/iridiumForge.node\");' > forge.cjs"
   },
