@@ -6,122 +6,10 @@
 
 #include "Iridium/Analysis/Domains/Liveness.h"
 #include "Iridium/Analysis/DataflowSolver.h"
+#include "Iridium/Analysis/RegisterAllocators/GraphColoringRegisterAllocator.h"
+// #include "Iridium/Analysis/RegisterAllocators/ScopeBasedRegisterAllocator.h"
+#include "Iridium/Analysis/RegisterAllocators/RAContext.h"
 #include "Iridium/Structure/FileView.h"
-
-struct RAGC
-{
-  std::set<std::shared_ptr<EnvBindingSEXP>> nodes;
-  std::unordered_map<std::shared_ptr<EnvBindingSEXP>, std::set<std::shared_ptr<EnvBindingSEXP>>> edges;
-
-  std::unordered_map<std::shared_ptr<EnvBindingSEXP>, size_t> allocation;
-
-  size_t K = 4;
-  size_t spillIdx = 4;
-  size_t maxIdx = 0;
-
-  void addNode(std::shared_ptr<EnvBindingSEXP> n)
-  {
-    nodes.insert(n);
-  }
-
-  void addEdge(std::shared_ptr<EnvBindingSEXP> u, std::shared_ptr<EnvBindingSEXP> v)
-  {
-    addNode(u);
-    addNode(v);
-    edges[u].insert(v);
-    edges[v].insert(u);
-  }
-
-  void allocate()
-  {
-    std::vector<std::shared_ptr<EnvBindingSEXP>> stack;
-
-    // --- Simplify phase ---
-    std::unordered_map<std::shared_ptr<EnvBindingSEXP>, std::set<std::shared_ptr<EnvBindingSEXP>>> graph = edges;
-    std::set<std::shared_ptr<EnvBindingSEXP>> remaining(nodes.begin(), nodes.end());
-
-    while (!remaining.empty())
-    {
-      bool removed = false;
-      for (auto it = remaining.begin(); it != remaining.end();)
-      {
-        auto node = *it;
-        size_t degree = graph[node].size();
-
-        if (degree < K)
-        {
-          stack.push_back(node);
-          // remove node from graph
-          for (auto &nbr : graph[node])
-          {
-            graph[nbr].erase(node);
-          }
-          graph.erase(node);
-          it = remaining.erase(it);
-          removed = true;
-          break;
-        }
-        else
-        {
-          ++it;
-        }
-      }
-
-      // If no node had degree < K, spill candidate
-      if (!removed)
-      {
-        auto node = *remaining.begin();
-        stack.push_back(node); // force push
-        for (auto &nbr : graph[node])
-        {
-          graph[nbr].erase(node);
-        }
-        graph.erase(node);
-        remaining.erase(node);
-      }
-    }
-
-    // --- Select phase ---
-    while (!stack.empty())
-    {
-      // TODO: Remove random, maybe better heuristic
-      auto node = stack.back();
-      stack.pop_back();
-
-      // Collect neighbor allocations
-      std::set<size_t> used;
-      for (auto &nbr : edges[node])
-      {
-        if (allocation.count(nbr))
-        {
-          used.insert(allocation[nbr]);
-        }
-      }
-
-      // Assign a free register if available
-      size_t assigned = K; // sentinel
-      for (size_t r = 0; r < K; ++r)
-      {
-        if (!used.count(r))
-        {
-          assigned = r;
-          break;
-        }
-      }
-
-      if (assigned == K)
-      {
-        // Spill
-        assigned = spillIdx++;
-      }
-
-      if (assigned > maxIdx)
-        maxIdx = assigned;
-      allocation[node] = assigned;
-      node->setREFIDX(assigned); // assumes EnvBindingSEXP has setIDX
-    }
-  }
-};
 
 using json = nlohmann::json;
 
@@ -656,45 +544,14 @@ std::shared_ptr<BBContainerSEXP> BBContainerView::checkout()
   if (getenv("NO_OPT") || getenv("NO_WBR") || getenv("NO_EPROP")) doRegalloc = false;
 
   if (doRegalloc) {
-    RAGC regAlloc;
-    for (auto &e : livenessResult)
-    { // e.second.dfv is a set std::set<std::shared_ptr<EnvBindingSEXP>>
-      auto &bb = cfgManager.cfg[e.first];
-      auto &boundaryLivenessInfo = e.second;
-      boundaryLivenessInfo.iter(bb,
-                                [&](size_t idx, const Liveness &val)
-                                {
-                                  for (auto it1 = val.dfv.begin(); it1 != val.dfv.end(); ++it1)
-                                  {
-                                    if ((*it1)->hasJSARG() || (*it1)->hasJSRESTARG())
-                                      continue;
-                                    regAlloc.addNode(*it1);
-                                    for (auto it2 = val.dfv.begin(); it2 != val.dfv.end(); ++it2)
-                                    {
-                                      if ((*it2)->hasJSARG() || (*it2)->hasJSRESTARG())
-                                        continue;
-                                      regAlloc.addNode(*it2);
-                                      if (*it1 != *it2)
-                                      {
-                                        regAlloc.addEdge(*it1, *it2);
-                                      }
-                                    }
-                                  }
-                                });
-    }
-
-    // std::cout << "REGALLOC OP NODES" << std::endl;
-    // for (auto & b : regAlloc.nodes)
-    // {
-    //   b->prettyPrint(std::cout);
-    //   std::cout << std::endl;
-    // }
-
-    regAlloc.allocate();
+    GraphColoringRegisterAllocator regAlloc;
+    RAContext ctx{livenessResult, cfgManager, bindingsView};
+    regAlloc.run(ctx);
 
     for (auto &cBinding : capturedStackBindings)
     {
-      cBinding->setIDX(regAlloc.maxIdx++);
+      cBinding->setIDX(regAlloc.getMaxIdx());
+      regAlloc.setMaxIdx(regAlloc.getMaxIdx() + 1);
     }
 
     std::unordered_map<double, std::vector<std::shared_ptr<EnvBindingSEXP>>> stackMap;
