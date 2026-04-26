@@ -1,6 +1,5 @@
 #include "Iridium/Analysis/Domains/ConstantsAtStmt.h"
 
-std::set<std::shared_ptr<EnvBindingSEXP>> ConstantsAtStmt::blacklist;
 
 ConstantsAtStmt ConstantsAtStmt::transfer(const std::shared_ptr<BBSEXP> &bb) const
 {

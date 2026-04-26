@@ -44,7 +44,7 @@ class ConstantProp
     return nullptr; // defensive
   }
 
-  static void patchExpr(IRISEXP expr, IRISEXP binding, const ConstantLatticeValue &val)
+  static void patchExpr(IRISEXP expr, IRISEXP binding, const ConstantLatticeValue &val, bool &changed)
   {
     for (size_t i = 0; i < expr->args.size(); i++)
     {
@@ -53,17 +53,20 @@ class ConstantProp
       {
         if (envReadNode->getObj() == binding)
         {
-          if (auto replacement = makeConstant(val))
+          if (auto replacement = makeConstant(val)) {
             expr->args[i] = replacement;
+            changed = true;
+          }
         }
       }
-      patchExpr(expr->args[i], binding, val);
+      patchExpr(expr->args[i], binding, val, changed);
     }
   }
 
 public:
-  static void Transform(std::shared_ptr<BBSEXP> &bb, ConstantsAtStmt inData)
+  static bool Transform(std::shared_ptr<BBSEXP> &bb, ConstantsAtStmt inData)
   {
+    bool changed = false;
     inData.iter(bb, [&](size_t idx, ConstantsAtStmt val)
     {
       for (auto &[binding, latticeVal] : val.dfv.store)
@@ -74,9 +77,9 @@ public:
 
         assert(latticeVal.kind != ConstantLatticeValue::BOTTOM);
 
-        // Recursively patch AST for the current statement
-        patchExpr(bb->args.at(idx), binding, latticeVal);
+        patchExpr(bb->args.at(idx), binding, latticeVal, changed);
       }
     });
+    return changed;
   }
 };

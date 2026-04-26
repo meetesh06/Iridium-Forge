@@ -1,6 +1,5 @@
 #include "Iridium/Analysis/Domains/SetSafePropKeyAccesses.h"
 
-std::set<std::shared_ptr<EnvBindingSEXP>> SetSafePropKeyAccesses::blacklist;
 
 SetSafePropKeyAccesses SetSafePropKeyAccesses::transfer(const std::shared_ptr<BBSEXP> &bb) const
 {

@@ -498,11 +498,10 @@ std::shared_ptr<BBContainerSEXP> BBContainerView::checkout()
 #endif
 
   auto capturedStackBindings = getCapturedStackBindings();
-  Liveness::blacklist = capturedStackBindings;
-  DataflowSolver<Liveness> livenessSolver(cfgManager, false, [&]()
-                                          { return Liveness::bottom(); });
+  DataflowSolver<Liveness> livenessSolver(cfgManager, false, [&capturedStackBindings]()
+                                          { return Liveness::bottom(capturedStackBindings); });
 
-  auto livenessResult = livenessSolver.run(Liveness::boundary(capturedStackBindings));
+  auto livenessResult = livenessSolver.run(Liveness::boundary(capturedStackBindings, capturedStackBindings));
 
   std::vector<IRISEXP> chapati = cfgManager.chapati();
   std::shared_ptr<ListSEXP> bbList = std::make_shared<ListSEXP>("BB");
@@ -545,6 +544,7 @@ std::shared_ptr<BBContainerSEXP> BBContainerView::checkout()
 
   if (doRegalloc) {
     GraphColoringRegisterAllocator regAlloc;
+    // ScopeBasedRegisterAllocator regAlloc;
     RAContext ctx{livenessResult, cfgManager, bindingsView};
     regAlloc.run(ctx);
 

@@ -1,6 +1,5 @@
 #include "Iridium/Analysis/Domains/CopyPropInfo.h"
 
-std::set<std::shared_ptr<EnvBindingSEXP>> CopyPropInfo::blacklist;
 
 CopyPropInfo CopyPropInfo::transfer(const std::shared_ptr<BBSEXP> &bb) const
 {

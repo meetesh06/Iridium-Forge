@@ -9,7 +9,7 @@ struct CopyPropInfo
 
   DFVT dfv;
   
-  static std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
+  std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
 
   void dump(std::ostream &oss) const
   {
@@ -51,10 +51,18 @@ struct CopyPropInfo
     return out;
   }
 
+  static CopyPropInfo make(const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {})
+  {
+    CopyPropInfo res;
+    res.blacklist = bl;
+    return res;
+  }
+
   CopyPropInfo clone() const
   {
     CopyPropInfo copy;
-    copy.dfv = dfv; // copy underlying map
+    copy.dfv = dfv;
+    copy.blacklist = blacklist;
     return copy;
   }
 

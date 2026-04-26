@@ -662,7 +662,7 @@ class PropEffects
   }
 
 public:
-  static void Transform(std::shared_ptr<BBSEXP> &bb, std::set<IRISEXP> &killset, Liveness livenessAfterStmt, EffectAtStmt effectAtStmt)
+  static bool Transform(std::shared_ptr<BBSEXP> &bb, std::set<IRISEXP> &killset, Liveness livenessAfterStmt, EffectAtStmt effectAtStmt)
   {
     // Effects stack right to left, so move throught the node LTR depth wise
     // If any effect already exists, this propagation is unsafe
@@ -687,15 +687,8 @@ public:
       if (effectInfo[currIdx].validEffect && livenessInfoAfterStmt.dfv.count(currEffect.store) == 0)
       {
         patchExprOuter(stmt, killset, currEffect);
-        // return;
       }
-      // std::cout << std::endl;
-      // stmt->prettyPrint(std::cout, 0);
-      // std::cout << std::endl;
-      // effectInfo[currIdx].dump(std::cout);
-      // std::cout << " -- ";
-      // livenessInfo[currIdx].dump(std::cout);
-      // std::cout << std::endl;
     }
+    return !killset.empty();
   }
 };

@@ -1,6 +1,5 @@
 #include "Iridium/Analysis/Domains/Liveness.h"
 
-std::set<std::shared_ptr<EnvBindingSEXP>> Liveness::blacklist;
 
 Liveness Liveness::transfer(const std::shared_ptr<BBSEXP> &bb) const
 {

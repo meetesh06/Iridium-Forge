@@ -1,7 +1,6 @@
 #include "Iridium/Globals.h"
 #include "Iridium/Analysis/Domains/EffectAtStmt.h"
 
-std::set<std::shared_ptr<EnvBindingSEXP>> EffectAtStmt::blacklist;
 
 EffectAtStmt EffectAtStmt::transfer(const std::shared_ptr<BBSEXP> &bb) const
 {

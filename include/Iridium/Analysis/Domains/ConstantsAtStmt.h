@@ -152,7 +152,7 @@ struct ConstantsAtStmt
   using DFVT = UnionedDataMap<IRISEXP, ConstantLatticeValue>;
 
   DFVT dfv;
-  static std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
+  std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
 
   void dump(std::ostream &oss) const
   {
@@ -178,13 +178,24 @@ struct ConstantsAtStmt
     return res;
   }
 
-  static ConstantsAtStmt boundary() { return ConstantsAtStmt(); }
-  static ConstantsAtStmt bottom() { return ConstantsAtStmt(); }
+  static ConstantsAtStmt boundary(const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {})
+  {
+    ConstantsAtStmt res;
+    res.blacklist = bl;
+    return res;
+  }
+  static ConstantsAtStmt bottom(const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {})
+  {
+    ConstantsAtStmt res;
+    res.blacklist = bl;
+    return res;
+  }
 
   ConstantsAtStmt clone() const
   {
     ConstantsAtStmt copy;
-    copy.dfv.store = dfv.store; // copy underlying map
+    copy.dfv.store = dfv.store;
+    copy.blacklist = blacklist;
     return copy;
   }
 

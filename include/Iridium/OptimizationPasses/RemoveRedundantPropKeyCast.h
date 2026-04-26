@@ -4,41 +4,41 @@
 class RemoveRedundantPropKeyCast
 {
 
-  static void patchExpr(IRISEXP curr, SetSafePropKeyAccesses &flowVal)
+  static void patchExpr(IRISEXP curr, SetSafePropKeyAccesses &flowVal, bool &changed)
   {
     if (auto computedFieldRead = std::dynamic_pointer_cast<JSComputedFieldReadSEXP>(curr))
     {
-      if (PropKeyLatticeValue::isSafe(computedFieldRead->getField(), flowVal.dfv))
-      {
-        // std::cout << "JSComputedFieldReadSEXP - removed field cast" << std::endl;
+      bool shouldBeSafe = PropKeyLatticeValue::isSafe(computedFieldRead->getField(), flowVal.dfv);
+      if (shouldBeSafe && !computedFieldRead->hasSAFE()) {
         computedFieldRead->setSAFE();
-      }
-      else
-      {
+        changed = true;
+      } else if (!shouldBeSafe && computedFieldRead->hasSAFE()) {
         computedFieldRead->unsetSAFE();
+        changed = true;
       }
     }
 
     if (auto computedFieldWrite = std::dynamic_pointer_cast<JSComputedFieldWriteSEXP>(curr))
     {
-      if (PropKeyLatticeValue::isSafe(computedFieldWrite->getField(), flowVal.dfv))
-      {
-        // std::cout << "JSComputedFieldWriteSEXP - removed field cast" << std::endl;
+      bool shouldBeSafe = PropKeyLatticeValue::isSafe(computedFieldWrite->getField(), flowVal.dfv);
+      if (shouldBeSafe && !computedFieldWrite->hasSAFE()) {
         computedFieldWrite->setSAFE();
-      }
-      else
-      {
+        changed = true;
+      } else if (!shouldBeSafe && computedFieldWrite->hasSAFE()) {
         computedFieldWrite->unsetSAFE();
+        changed = true;
       }
     }
     for (auto &e : curr->args)
-      patchExpr(e, flowVal);
+      patchExpr(e, flowVal, changed);
   }
 
 public:
-  static void Transform(std::shared_ptr<BBSEXP> &bb, SetSafePropKeyAccesses inData)
+  static bool Transform(std::shared_ptr<BBSEXP> &bb, SetSafePropKeyAccesses inData)
   {
+    bool changed = false;
     inData.iter(bb, [&](size_t idx, SetSafePropKeyAccesses val)
-                { patchExpr(bb->args.at(idx), val); });
+                { patchExpr(bb->args.at(idx), val, changed); });
+    return changed;
   }
 };

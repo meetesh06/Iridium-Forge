@@ -131,9 +131,15 @@ class DCE
   }
 
 public:
-  static void Transform(std::shared_ptr<BBSEXP> &bb, Liveness inData)
+  static bool Transform(std::shared_ptr<BBSEXP> &bb, Liveness inData)
   {
-    inData.iter(bb, [&](size_t idx, const Liveness &val)
-                { bb->args.at(idx) = patchExpr(bb->args.at(idx), val); });
+    bool changed = false;
+    inData.iter(bb, [&](size_t idx, const Liveness &val) {
+      auto original = bb->args.at(idx);
+      auto result = patchExpr(original, val);
+      bb->args.at(idx) = result;
+      if (result != original) changed = true;
+    });
+    return changed;
   }
 };

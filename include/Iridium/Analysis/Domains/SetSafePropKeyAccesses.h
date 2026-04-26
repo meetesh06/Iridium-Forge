@@ -91,7 +91,7 @@ struct SetSafePropKeyAccesses
   using DFVT = UnionedDataMap<IRISEXP, PropKeyLatticeValue>;
 
   DFVT dfv;
-  static std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
+  std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
 
   void dump(std::ostream &oss) const
   {
@@ -117,27 +117,28 @@ struct SetSafePropKeyAccesses
     return res;
   }
 
-  static SetSafePropKeyAccesses boundary(std::set<IRISEXP> vals) {
+  static SetSafePropKeyAccesses boundary(std::set<IRISEXP> vals,
+                                         const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {}) {
     auto res = SetSafePropKeyAccesses();
-    for (auto v : vals) 
-    {
+    for (auto v : vals)
       res.dfv.store[v] = PropKeyLatticeValue{PropKeyLatticeValue::BOTTOM};
-    }
+    res.blacklist = bl;
     return res;
   }
-  static SetSafePropKeyAccesses bottom(std::set<IRISEXP> vals) {
+  static SetSafePropKeyAccesses bottom(std::set<IRISEXP> vals,
+                                       const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {}) {
     auto res = SetSafePropKeyAccesses();
-    for (auto v : vals) 
-    {
+    for (auto v : vals)
       res.dfv.store[v] = PropKeyLatticeValue{PropKeyLatticeValue::BOTTOM};
-    }
+    res.blacklist = bl;
     return res;
   }
 
   SetSafePropKeyAccesses clone() const
   {
     SetSafePropKeyAccesses copy;
-    copy.dfv.store = dfv.store; // copy underlying map
+    copy.dfv.store = dfv.store;
+    copy.blacklist = blacklist;
     return copy;
   }
 

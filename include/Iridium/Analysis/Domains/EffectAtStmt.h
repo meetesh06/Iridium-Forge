@@ -12,7 +12,7 @@ struct EffectAtStmt
   IRISEXP effect = NULL;
   IRISEXP stmt = NULL;
   
-  static std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
+  std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
 
   void dump(std::ostream &oss) const
   {
@@ -51,6 +51,13 @@ struct EffectAtStmt
 
     if (*this == other) return EffectAtStmt{bottom, validEffect, store, effect, stmt};
     return EffectAtStmt{false, false, NULL, NULL, NULL};
+  }
+
+  static EffectAtStmt make(const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {})
+  {
+    EffectAtStmt res;
+    res.blacklist = bl;
+    return res;
   }
 
   EffectAtStmt clone() const

@@ -12,7 +12,7 @@ struct Liveness
 
   DFVT dfv;
 
-  static std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
+  std::set<std::shared_ptr<EnvBindingSEXP>> blacklist;
 
   void dump(std::ostream &oss) const
   {
@@ -39,16 +39,20 @@ struct Liveness
     return res;
   }
 
-  static Liveness boundary(const std::set<std::shared_ptr<EnvBindingSEXP>> &alwaysLive)
+  static Liveness boundary(const std::set<std::shared_ptr<EnvBindingSEXP>>& alwaysLive,
+                           const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {})
   {
     Liveness res;
     res.dfv.insert(alwaysLive.begin(), alwaysLive.end());
+    res.blacklist = bl;
     return res;
   }
 
-  static Liveness bottom()
+  static Liveness bottom(const std::set<std::shared_ptr<EnvBindingSEXP>>& bl = {})
   {
-    return Liveness{}; // empty set
+    Liveness res;
+    res.blacklist = bl;
+    return res;
   }
 
   Liveness clone() const {

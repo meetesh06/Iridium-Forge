@@ -21,7 +21,7 @@ class WriteBarrierReduction
       markCapturedBindings(e, inData);
   }
 
-  static void patchExpr(IRISEXP curr, IRISEXP binding, TDZLattice & latticeVal)
+  static void patchExpr(IRISEXP curr, IRISEXP binding, TDZLattice &latticeVal, bool &changed)
   {
     if (auto envWriteSEXP = std::dynamic_pointer_cast<EnvWriteSEXP>(curr))
     {
@@ -29,61 +29,59 @@ class WriteBarrierReduction
       {
         if (binding->hasFlag("JSCONST") && !envWriteSEXP->hasTHISINIT()) envWriteSEXP->setTHROWERR();
         envWriteSEXP->setSAFE(true);
+        changed = true;
       }
 
-      if (auto remEnvBindingWrite =  std::dynamic_pointer_cast<RemoteEnvBindingSEXP>(envWriteSEXP->getLValTarget()))
+      if (auto remEnvBindingWrite = std::dynamic_pointer_cast<RemoteEnvBindingSEXP>(envWriteSEXP->getLValTarget()))
       {
         if (!envWriteSEXP->getSAFE() && currFileView->safelyCapturedBindings.count(remEnvBindingWrite) > 0)
         {
           if (resolveRemoteBinding(remEnvBindingWrite)->hasFlag("JSCONST") && !envWriteSEXP->hasTHISINIT()) envWriteSEXP->setTHROWERR();
           currFileView->safelyCaptured++;
           envWriteSEXP->setSAFE(true);
+          changed = true;
         }
       }
-
     }
     if (auto envReadSEXP = std::dynamic_pointer_cast<EnvReadSEXP>(curr))
     {
       if (auto o = std::dynamic_pointer_cast<EnvBindingSEXP>(envReadSEXP->getObj()))
       {
-        if (latticeVal.kind == TDZLattice::SAFE && o == binding)
+        if (latticeVal.kind == TDZLattice::SAFE && o == binding && !envReadSEXP->hasSAFE())
         {
           envReadSEXP->setSAFE();
+          changed = true;
         }
       }
 
-      // Set safety for reads to remote bindings which are known to be trivially true i.e. bindings captured outside the temporal dead zone
       if (auto o = std::dynamic_pointer_cast<RemoteEnvBindingSEXP>(envReadSEXP->getObj()))
       {
         if (!envReadSEXP->hasSAFE() && currFileView->safelyCapturedBindings.count(o) > 0)
         {
           currFileView->safelyCaptured++;
           envReadSEXP->setSAFE();
+          changed = true;
         }
       }
     }
 
     for (auto e : curr->args)
-      patchExpr(e, binding, latticeVal);
+      patchExpr(e, binding, latticeVal, changed);
   }
 
 public:
-  static FileView * currFileView;
-  
-  static void Transform(std::shared_ptr<BBSEXP> &bb, TDZA inData)
+  static FileView *currFileView;
+
+  static bool Transform(std::shared_ptr<BBSEXP> &bb, TDZA inData)
   {
-    inData.iter(bb, [&](size_t idx, TDZA val)
-                {
+    bool changed = false;
+    inData.iter(bb, [&](size_t idx, TDZA val) {
       for (auto &[binding, latticeVal] : val.dfv.store)
-      {
-        patchExpr(bb->args.at(idx), binding, latticeVal);
-      } 
+        patchExpr(bb->args.at(idx), binding, latticeVal, changed);
 
       if (currFileView && hasNode(bb->args.at(idx), predicateLambdaSEXP))
-      {
         markCapturedBindings(bb->args.at(idx), val);
-      }
-
     });
+    return changed;
   }
 };
