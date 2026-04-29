@@ -10,6 +10,7 @@
 //
 // Builds an interference graph from liveness results, then runs the
 // simplify/select phases to assign register indices to each binding.
+// TODO: Change it to use Brigg's algorithm
 class GraphColoringRegisterAllocator : public RegisterAllocator
 {
 public:

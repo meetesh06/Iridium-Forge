@@ -6,6 +6,7 @@
 
 // Bundles all IR context that register allocators may need.
 // Each allocator pulls only what is relevant to its strategy.
+// TODO: Move livenessResult out of here and into GraphColoringRegisterAllocator
 struct RAContext
 {
   const std::unordered_map<Vertex, Liveness> &livenessResult;
