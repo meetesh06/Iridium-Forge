@@ -5,9 +5,9 @@
 #include "Analysis/Liveness.h"
 #include "Generated/IridiumTypes.h"
 #include "Support/BBContainerSupport.hpp"
-#include <iostream>
 #include <vector>
 #include <set>
+#include <unordered_map>
 
 namespace IRI_STRUCTURAL {
 
