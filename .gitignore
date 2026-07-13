@@ -53,3 +53,4 @@ gen.sh
 forge.cjs
 
 backup*
+.aider*
